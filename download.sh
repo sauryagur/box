@@ -38,7 +38,7 @@ case "$host_os" in
         ;;
     Linux)
         case "$host_arch" in
-            aarch64) triple="aarch64-unknown-linux-gnu" ;;
+            arm64|aarch64) triple="aarch64-unknown-linux-gnu" ;;
             x86_64) die "Linux on x86_64 is not yet supported; see https://github.com/strands-agents/box/issues/45." ;;
             *) die "unsupported architecture: $host_arch. Box supports Linux on aarch64." ;;
         esac
