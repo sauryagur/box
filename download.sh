@@ -68,7 +68,7 @@ fi
 
 need tar
 need awk
-
+need mktemp
 if [ -z "$VERSION" ]; then
     log "Resolving latest release from ${REPO}..."
     resolved="$(latest_url "https://github.com/${REPO}/releases/latest")"
@@ -84,7 +84,10 @@ asset="box-${VERSION}-${triple}.tar.gz"
 base_url="https://github.com/${REPO}/releases/download/${VERSION}"
 
 tmp="$(mktemp -d)"
-trap 'rm -rf "$tmp"' EXIT INT HUP TERM
+trap 'rm -rf "$tmp"' EXIT
+trap 'rm -rf "$tmp"; exit 130' INT
+trap 'rm -rf "$tmp"; exit 129' HUP
+trap 'rm -rf "$tmp"; exit 143' TERM
 
 log "Downloading ${asset}..."
 fetch "${base_url}/${asset}" "${tmp}/${asset}" \
@@ -94,7 +97,7 @@ log "Downloading SHA256SUMS.txt..."
 fetch "${base_url}/SHA256SUMS.txt" "${tmp}/SHA256SUMS.txt" \
     || die "failed to download SHA256SUMS.txt"
 
-expected="$(awk -v a="$asset" '$2==a {print $1}' "${tmp}/SHA256SUMS.txt")"
+expected="$(awk -v a="$asset" '{n=$2; sub(/^\*/, "", n); if (n==a) print $1}' "${tmp}/SHA256SUMS.txt")"
 [ -n "$expected" ] || die "no SHA256SUMS.txt entry for ${asset}"
 actual="$(sha256_of "${tmp}/${asset}")"
 [ "$expected" = "$actual" ] || die "checksum mismatch for ${asset} (expected ${expected}, got ${actual})"
