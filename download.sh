@@ -1,7 +1,7 @@
 #!/bin/sh
 # Box release downloader.
 #
-# Downloads the prebuilt box tarball for macOS on Apple silicon from the
+# Downloads the prebuilt box tarball for macOS on Apple silicon or Linux on aarch64 from the
 # strands-agents/box GitHub Release, verifies it against SHA256SUMS.txt, and
 # unpacks its files into a local directory (./box-core by default).
 #
@@ -30,15 +30,21 @@ need() { command -v "$1" >/dev/null 2>&1 || die "required command not found: $1"
 host_os="$(uname -s)"
 host_arch="$(uname -m)"
 case "$host_os" in
-    Darwin) ;;
-    *) die "unsupported OS: $host_os. Box supports macOS on Apple silicon." ;;
+    Darwin)
+        case "$host_arch" in
+            arm64|aarch64) triple="aarch64-apple-darwin" ;;
+            *) die "unsupported architecture: $host_arch. Box supports macOS on Apple silicon." ;;
+        esac
+        ;;
+    Linux)
+        case "$host_arch" in
+            aarch64) triple="aarch64-unknown-linux-gnu" ;;
+            x86_64) die "Linux on x86_64 is not yet supported; see https://github.com/strands-agents/box/issues/45." ;;
+            *) die "unsupported architecture: $host_arch. Box supports Linux on aarch64." ;;
+        esac
+        ;;
+    *) die "unsupported OS: $host_os. Box supports macOS on Apple silicon and Linux on aarch64." ;;
 esac
-case "$host_arch" in
-    arm64|aarch64) ;;
-    *) die "unsupported architecture: $host_arch. Box supports macOS on Apple silicon." ;;
-esac
-triple="aarch64-apple-darwin"
-
 if command -v curl >/dev/null 2>&1; then
     fetch() { curl -fsSL "$1" -o "$2"; }
     latest_url() { curl -fsSIL -o /dev/null -w '%{url_effective}\n' "$1"; }
